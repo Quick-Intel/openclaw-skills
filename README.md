@@ -2,6 +2,8 @@
 
 OpenClaw skills for Quick Intel's crypto APIs with x402 v2 payment protocol.
 
+**No API keys. No subscriptions. Pay per request with USDC.**
+
 ## Skills
 
 ### 🔍 quickintel-scan
@@ -14,10 +16,15 @@ OpenClaw skills for Quick Intel's crypto APIs with x402 v2 payment protocol.
 - **Idempotency:** Supported via `payment-identifier` extension
 - **Use when:** "Is this token safe?", "Check for honeypot", "Audit contract"
 
+**Read the skill:**
+
 ```
-quickintel-scan/
-└── SKILL.md
+quickintel-scan/SKILL.md
 ```
+
+> 💡 **For agents:** Point your agent at the raw skill file to learn the full API surface, request/response schemas, and payment flow.
+
+---
 
 ### 🤖 tator-trade
 
@@ -30,7 +37,7 @@ quickintel-scan/
 - **Free endpoints:** Health check, async job polling
 - **Operations:**
   - Trading: Buy, Sell, Swap
-  - Transfers: Send, Wrap/Unwrap ETH
+  - Transfers: Send, Wrap/Unwrap ETH, Burn
   - Bridging: Relay, LiFi, GasZip, deBridge
   - Perps: Avantis (Base)
   - Prediction Markets: Myriad
@@ -38,21 +45,43 @@ quickintel-scan/
   - Name Registration: .base, .mega, .somi
   - Yield: Aave, Morpho, Compound, Yearn
 
+**Read the skill:**
+
 ```
-tator-trade/
-└── SKILL.md
+tator-trade/SKILL.md
 ```
+
+---
 
 ## Installation
 
-### ClawHub (Recommended)
+### New to OpenClaw?
 
 ```bash
-clawhub install quickintel/quickintel-scan
-clawhub install quickintel/tator-trader
+# Install OpenClaw
+npm i -g openclaw
+
+# Meet your lobster
+openclaw onboard
+
+# Start chatting
+openclaw chat
 ```
 
-### Manual
+More install options (curl one-liner, Windows) at [openclaw.ai](https://openclaw.ai)
+
+### Install Skills via ClawHub (Recommended)
+
+```bash
+npx clawhub install quickintel-scan --force
+npx clawhub install tator-trader --force
+```
+
+Or browse on ClawHub:
+- [quickintel-scan](https://clawhub.ai/azep-ninja/quickintel-scan)
+- [tator-trader](https://clawhub.ai/azep-ninja/tator-trader)
+
+### Manual Installation
 
 Copy the skill folders to your OpenClaw skills directory:
 
@@ -65,6 +94,19 @@ cp -r tator-trade ~/.openclaw/skills/
 cp -r quickintel-scan ./skills/
 cp -r tator-trade ./skills/
 ```
+
+### For Any Agent (Direct Skill Files)
+
+Don't use OpenClaw? Point your agent at the raw SKILL.md files:
+
+| Skill | Raw URL |
+|-------|---------|
+| Quick Intel Scanner | `https://raw.githubusercontent.com/Quick-Intel/openclaw-skills/main/quickintel-scan/SKILL.md` |
+| Tator Trading | `https://raw.githubusercontent.com/Quick-Intel/openclaw-skills/main/tator-trade/SKILL.md` |
+
+Your agent reads the skill file and knows the full API — endpoints, schemas, payment flow, everything.
+
+---
 
 ## Requirements
 
@@ -87,6 +129,8 @@ cp -r tator-trade ./skills/
   - **Solana:** USDC on Solana mainnet
   - $0.03 minimum for Quick Intel scans
   - $0.20 minimum for Tator requests
+
+---
 
 ## How x402 v2 Works
 
@@ -119,7 +163,6 @@ x402 is an HTTP payment protocol. No API keys, no subscriptions.
 Pay on whichever chain you have USDC. The 402 response lists all accepted networks:
 
 **EVM:** Base, Ethereum, Arbitrum, Optimism, Polygon, Avalanche, Unichain, Linea, MegaETH.
-
 **SVM:** Solana mainnet.
 
 ### ⚠️ PAYMENT-SIGNATURE Structure (Read This First)
@@ -161,7 +204,11 @@ Both skills support the `payment-identifier` extension. Include a unique payment
 
 Query `GET https://x402.quickintel.io/accepted` for all routes, pricing, supported networks, and input/output schemas.
 
-## Example: Pay with `@x402/fetch` (Simplest)
+---
+
+## Examples
+
+### Pay with `@x402/fetch` (Simplest)
 
 ```javascript
 import { x402Fetch } from '@x402/fetch';
@@ -184,7 +231,7 @@ const scanResponse = await x402Fetch('https://x402.quickintel.io/v1/scan/full', 
 const scan = await scanResponse.json();
 ```
 
-## Example: Pay with Solana
+### Pay with Solana
 
 ```javascript
 import { createSvmClient } from '@x402/svm/client';
@@ -214,7 +261,7 @@ const scanResponse = await paidFetch('https://x402.quickintel.io/v1/scan/full', 
 const scan = await scanResponse.json();
 ```
 
-## Example: Pay with Sponge Wallet (One-Liner)
+### Pay with Sponge Wallet (One-Liner)
 
 ```bash
 curl -sS -X POST "https://api.wallet.paysponge.com/api/x402/fetch" \
@@ -233,7 +280,7 @@ curl -sS -X POST "https://api.wallet.paysponge.com/api/x402/fetch" \
 
 No manual signing — Sponge handles the entire x402 flow. See the [sponge-wallet skill](https://wallet.paysponge.com) for setup.
 
-## Example: Scan Before Trading
+### Scan Before Trading
 
 ```javascript
 // 1. Scan token ($0.03)
@@ -242,6 +289,7 @@ const scan = await quickIntelScan('base', tokenAddress);
 if (scan.tokenDynamicDetails.is_Honeypot) {
   throw new Error('HONEYPOT - Do not trade');
 }
+
 if (scan.quickiAudit.has_Scams) {
   throw new Error('SCAM DETECTED - Do not trade');
 }
@@ -266,18 +314,24 @@ for (const tx of trade.transactions) {
 }
 ```
 
+---
+
 ## ⚠️ Liquidity Note
 
-The Quick Intel scanner checks major DEX pairs (WETH, USDC, USDT, native tokens) but may not detect liquidity for tokens paired against non-standard assets. If `liquidity: false`, verify independently via a DEX aggregator (1inch, Jupiter, Odos) before trading. See the quickintel-scan SKILL.md for full details.
+The Quick Intel scanner checks major DEX pairs (WETH, USDC, USDT, native tokens) but may not detect liquidity for tokens paired against non-standard assets. If `liquidity: false`, verify independently via a DEX aggregator (1inch, Jupiter, Odos) or DEX site (DexTools, DexScreener, Gecko Terminal) before trading. See the quickintel-scan SKILL.md for full details.
+
+---
 
 ## Links
 
 - **Quick Intel:** https://quickintel.io
+- **x402 Gateway:** https://x402.quickintel.io
 - **Documentation:** https://docs.quickintel.io
 - **x402 Protocol:** https://www.x402.org
 - **x402 EVM Spec:** https://github.com/coinbase/x402/blob/main/specs/schemes/exact/scheme_exact_evm.md
 - **Gateway Discovery:** https://x402.quickintel.io/accepted
-- **Support:** https://t.me/quickintel
+- **ClawHub:** https://clawhub.ai/azep-ninja
+- **Support:** https://t.me/quicki
 
 ## License
 
