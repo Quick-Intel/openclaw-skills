@@ -1,6 +1,6 @@
 # Quick Intel OpenClaw Skills
 
-OpenClaw skills for Quick Intel's crypto APIs with x402 v2 payment protocol.
+OpenClaw skills for Quick Intel's crypto APIs and Tator's token launch infrastructure.
 
 **No API keys. No subscriptions. Pay per request with USDC.**
 
@@ -22,8 +22,6 @@ OpenClaw skills for Quick Intel's crypto APIs with x402 v2 payment protocol.
 quickintel-scan/SKILL.md
 ```
 
-> 💡 **For agents:** Point your agent at the raw skill file to learn the full API surface, request/response schemas, and payment flow.
-
 ---
 
 ### 🤖 tator-trade
@@ -37,7 +35,7 @@ quickintel-scan/SKILL.md
 - **Free endpoints:** Health check, async job polling
 - **Operations:**
   - Trading: Buy, Sell, Swap
-  - Transfers: Send, Wrap/Unwrap ETH, Burn
+  - Transfers: Send, Wrap/Unwrap ETH
   - Bridging: Relay, LiFi, GasZip, deBridge
   - Perps: Avantis (Base)
   - Prediction Markets: Myriad
@@ -50,6 +48,30 @@ quickintel-scan/SKILL.md
 ```
 tator-trade/SKILL.md
 ```
+
+---
+
+### 🚀 token-launcher
+
+**Token launch strategy + execution** — Design, evaluate, and deploy tokens through Tator with full transparency on fees, custody, and tax implications.
+
+- **Launch platforms:** Clanker (Base, Mainnet, Arbitrum, Unichain, Monad, Abstract), Pump.fun (Solana)
+- **Fee split:** 90% creator / 10% Tator (of the 1% pool fee) + 0.2% Clanker protocol fee
+- **Full custody:** Unsigned transactions — you sign with your own wallet
+- **Includes:**
+  - **Launch Stack** — four-layer evaluation framework (Hook, Engine, Story, Moat) for concept development
+  - **Security integration** — Quick Intel scanning built into the launch flow
+  - **Tax & legal reality check** — jurisdiction-aware guidance with real-world scenarios
+  - **Mandatory confirmation** — builders acknowledge tax implications before deployment
+- **Use when:** "Launch a token", "Token idea", "Is this a good coin concept", "Help me deploy"
+
+**Read the skill:**
+
+```
+token-launcher/SKILL.md
+```
+
+> 💡 This is the only token launch skill in the ecosystem that includes tax and legal awareness, security scanning integration, and requires builder confirmation before deployment.
 
 ---
 
@@ -75,11 +97,13 @@ More install options (curl one-liner, Windows) at [openclaw.ai](https://openclaw
 ```bash
 npx clawhub install quickintel-scan --force
 npx clawhub install tator-trader --force
+npx clawhub install token-launcher --force
 ```
 
 Or browse on ClawHub:
 - [quickintel-scan](https://clawhub.ai/azep-ninja/quickintel-scan)
 - [tator-trader](https://clawhub.ai/azep-ninja/tator-trader)
+- [token-launcher](https://clawhub.ai/azep-ninja/token-launcher)
 
 ### Manual Installation
 
@@ -89,10 +113,12 @@ Copy the skill folders to your OpenClaw skills directory:
 # User skills (shared across agents)
 cp -r quickintel-scan ~/.openclaw/skills/
 cp -r tator-trade ~/.openclaw/skills/
+cp -r token-launcher ~/.openclaw/skills/
 
 # Or workspace skills (per agent)
 cp -r quickintel-scan ./skills/
 cp -r tator-trade ./skills/
+cp -r token-launcher ./skills/
 ```
 
 ### For Any Agent (Direct Skill Files)
@@ -103,12 +129,15 @@ Don't use OpenClaw? Point your agent at the raw SKILL.md files:
 |-------|---------|
 | Quick Intel Scanner | `https://raw.githubusercontent.com/Quick-Intel/openclaw-skills/main/quickintel-scan/SKILL.md` |
 | Tator Trading | `https://raw.githubusercontent.com/Quick-Intel/openclaw-skills/main/tator-trade/SKILL.md` |
+| Token Launcher | `https://raw.githubusercontent.com/Quick-Intel/openclaw-skills/main/token-launcher/SKILL.md` |
 
 Your agent reads the skill file and knows the full API — endpoints, schemas, payment flow, everything.
 
 ---
 
 ## Requirements
+
+### quickintel-scan & tator-trade
 
 **No API keys needed** — these skills use x402 payment protocol. No subscriptions, no accounts.
 
@@ -129,6 +158,16 @@ Your agent reads the skill file and knows the full API — endpoints, schemas, p
   - **Solana:** USDC on Solana mainnet
   - $0.03 minimum for Quick Intel scans
   - $0.20 minimum for Tator requests
+
+### token-launcher
+
+**No API keys needed.** Token launching is handled through the Tator trading skill (`tator-trade`). The token-launcher skill provides the Launch Stack strategy framework, tax guidance, and mandatory confirmation flow — it works in conjunction with tator-trade for execution.
+
+**You need:**
+- A wallet you control (Tator returns unsigned transactions)
+- Enough native token for gas (ETH on Base, SOL on Solana)
+- The tator-trade skill installed (for executing the actual deployment)
+- The quickintel-scan skill installed (recommended — for post-deploy security verification)
 
 ---
 
@@ -198,7 +237,7 @@ See the individual SKILL.md files for complete viem and ethers.js manual signing
 
 ### Idempotency (payment-identifier)
 
-Both skills support the `payment-identifier` extension. Include a unique payment ID in your request to prevent double-charging on retries — especially important for Tator at $0.20/request.
+Both quickintel-scan and tator-trade support the `payment-identifier` extension. Include a unique payment ID in your request to prevent double-charging on retries — especially important for Tator at $0.20/request.
 
 ### Discovery
 
@@ -318,7 +357,7 @@ for (const tx of trade.transactions) {
 
 ## ⚠️ Liquidity Note
 
-The Quick Intel scanner checks major DEX pairs (WETH, USDC, USDT, native tokens) but may not detect liquidity for tokens paired against non-standard assets. If `liquidity: false`, verify independently via a DEX aggregator (1inch, Jupiter, Odos) or DEX site (DexTools, DexScreener, Gecko Terminal) before trading. See the quickintel-scan SKILL.md for full details.
+The Quick Intel scanner checks major DEX pairs (WETH, USDC, USDT, native tokens) but may not detect liquidity for tokens paired against non-standard assets. If `liquidity: false`, verify independently via a DEX aggregator (1inch, Jupiter, Odos) before trading. See the quickintel-scan SKILL.md for full details.
 
 ---
 
