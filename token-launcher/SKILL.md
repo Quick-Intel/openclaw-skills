@@ -381,11 +381,55 @@ After deployment:
 
 ---
 
-## Tools
+## Setup & Required Skills
 
-Token launching and trading is handled through Tator's natural language interface. Research (comparable tokens, market data, trending narratives) uses the platform's native search and analysis tools.
+This skill handles strategy, evaluation, and the pre-launch confirmation flow. When the builder is ready to deploy, the actual on-chain execution is handled by the **tator-trade** skill. Security scanning is handled by **quickintel-scan**. Both should be installed alongside this skill.
 
-For security scanning of deployed tokens, use the Quick Intel Scanner skill.
+### Install All Three Skills
+
+**Via ClawHub (recommended):**
+```bash
+npx clawhub install tator-launch-pad --force
+npx clawhub install tator-trader --force
+npx clawhub install quickintel-scan --force
+```
+
+**Via raw skill files (any agent):**
+
+| Skill | What it does | URL |
+|-------|-------------|-----|
+| **Token Launcher** | Strategy, evaluation, tax guidance, confirmation | `https://raw.githubusercontent.com/Quick-Intel/openclaw-skills/main/token-launcher/SKILL.md` |
+| **Tator Trade** | Executes the deployment + all trading operations | `https://raw.githubusercontent.com/Quick-Intel/openclaw-skills/main/tator-trade/SKILL.md` |
+| **Quick Intel Scan** | Security scanning of deployed tokens | `https://raw.githubusercontent.com/Quick-Intel/openclaw-skills/main/quickintel-scan/SKILL.md` |
+
+### How the Skills Work Together
+
+```
+1. Builder has a token idea
+        ↓
+2. TOKEN LAUNCHER evaluates the concept (Launch Stack)
+        ↓
+3. TOKEN LAUNCHER presents tax/legal reality check
+        ↓
+4. Builder confirms they understand → mandatory gate
+        ↓
+5. TATOR TRADE executes the deployment on-chain
+   (natural language → unsigned TX → builder signs)
+        ↓
+6. QUICK INTEL SCAN verifies the deployed token looks clean
+        ↓
+7. TOKEN LAUNCHER provides post-launch guidance
+```
+
+### Requirements
+
+- **A wallet you control** — Tator returns unsigned transactions, you sign them
+- **Native token for gas** — ETH on Base (or other EVM chains), SOL on Solana
+- **USDC for API costs** — $0.20 per Tator trade request, $0.03 per Quick Intel scan
+  - Pay on Base (recommended, lowest fees), Ethereum, Arbitrum, Optimism, Polygon, Avalanche, Unichain, Linea, MegaETH, or Solana
+- **No API keys needed** — Tator and Quick Intel use x402 payment protocol, no subscriptions or accounts
+
+Research (comparable tokens, market data, trending narratives) uses the platform's native search and analysis tools.
 
 ---
 
