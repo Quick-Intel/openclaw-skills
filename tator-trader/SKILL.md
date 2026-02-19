@@ -62,7 +62,7 @@ description: "Execute crypto trades using natural language via Tator's AI tradin
 
 ### Who Operates This
 
-Tator's endpoint (`x402.quickintel.io`) is operated by **Quick Intel LLC**, a registered Colorado-based cryptocurrency security company. The same infrastructure serves over 50 million token security scans across 40+ blockchain networks and provides APIs to platforms including DexTools, DexScreener, and Tator Trader. More information: [quickintel.io](https://quickintel.io)
+Tator's endpoint (`x402.quickintel.io`) is operated by **Quick Intel LLC**, a registered US based cryptocurrency security company. The same infrastructure serves over 50 million token security scans across 40+ blockchain networks and provides APIs to platforms including DexTools, DexScreener, and Tator Trader. More information: [quickintel.io](https://quickintel.io)
 
 > **Bottom line:** The worst Tator can do is return a bad transaction. The worst YOU can do is sign it without checking. Always verify before you sign.
 
@@ -1346,7 +1346,7 @@ await buyTokenSafely(
 - **Solana payment:** Pay with USDC on Solana using the SVM payment flow. The 402 response includes the `extra.feePayer` address needed to build the transaction.
 - **Job polling is free.** Once you've paid for the prompt in async mode, polling `/v1/tator/jobs/:jobId` costs nothing.
 - **Always scan before buying unknown tokens.** Use the **quickintel-scan** skill ($0.03) to check for honeypots, scams, and rug pull risks before executing trades. The liquidity field may not detect non-standard pairs — verify independently via DEX aggregators.
-- **Tator's endpoint (`x402.quickintel.io`) is operated by Quick Intel LLC**, a registered Colorado-based company providing crypto security APIs to platforms including DexTools and DexScreener. The same infrastructure serves over 50 million token scans. For more information: [quickintel.io](https://quickintel.io)
+- **Tator's endpoint (`x402.quickintel.io`) is operated by Quick Intel LLC**, a registered US based company providing crypto security APIs to platforms including DexTools and DexScreener. The same infrastructure serves over 50 million token scans. For more information: [quickintel.io](https://quickintel.io)
 
 ## Cross-Reference
 
