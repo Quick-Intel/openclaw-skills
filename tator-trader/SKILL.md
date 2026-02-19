@@ -13,6 +13,61 @@ description: "Execute crypto trades using natural language via Tator's AI tradin
 
 **This is NOT a swap aggregator.** Tator is an AI that understands trading intent. It handles complex operations like "bridge 100 USDC to Arbitrum and swap for ARB" that would normally require multiple manual steps.
 
+---
+
+## Security Model
+
+**Tator is a transaction builder, not a custodian.** Understanding the trust boundaries is critical:
+
+### What Tator CAN do
+- Construct unsigned transactions based on your natural language prompt
+- Return transaction calldata, target addresses, and values for you to review
+- Charge $0.20 USDC via x402 for the computation
+
+### What Tator CANNOT do
+- Access your private keys (they never leave your wallet)
+- Execute transactions on your behalf (YOU sign and broadcast)
+- Move funds without your explicit signature
+- Access tokens you haven't approved in a signed transaction
+
+### What YOU must do
+- **NEVER paste private keys, seed phrases, or wallet credentials into any prompt.** Tator only needs your PUBLIC wallet address.
+- **Inspect every returned transaction before signing.** See the Transaction Verification Checklist below.
+- **Use a hardware wallet or trusted wallet extension for signing.** This adds a physical confirmation step that no software can bypass.
+- **Start small.** Test with trivial amounts before executing large trades.
+
+### Trust Boundary
+
+```
+┌─────────────────────────────────────────────────────┐
+│  YOUR SIDE (you control)                            │
+│                                                     │
+│  • Private keys (never shared)                      │
+│  • Transaction review (before signing)              │
+│  • Signing decision (your wallet, your choice)      │
+│  • Broadcasting (you submit to the network)         │
+│                                                     │
+├─────────────────────────────────────────────────────┤
+│  TATOR'S SIDE (external service)                    │
+│                                                     │
+│  • Interprets your natural language prompt           │
+│  • Constructs unsigned transaction calldata          │
+│  • Returns transactions for your review              │
+│  • Charges $0.20 via x402 payment protocol           │
+│                                                     │
+│  Tator NEVER receives your private key.              │
+│  Tator CANNOT execute without your signature.        │
+└─────────────────────────────────────────────────────┘
+```
+
+### Who Operates This
+
+Tator's endpoint (`x402.quickintel.io`) is operated by **Quick Intel LLC**, a registered Colorado-based cryptocurrency security company. The same infrastructure serves over 50 million token security scans across 40+ blockchain networks and provides APIs to platforms including DexTools, DexScreener, and Tator Trader. More information: [quickintel.io](https://quickintel.io)
+
+> **Bottom line:** The worst Tator can do is return a bad transaction. The worst YOU can do is sign it without checking. Always verify before you sign.
+
+---
+
 ## Overview
 
 | Detail | Value |
@@ -442,9 +497,10 @@ Content-Type: application/json
 ```
 
 **You must:**
-1. Sign each transaction with your wallet
-2. Broadcast to the network
-3. Wait for confirmation
+1. **Verify** each transaction (see Transaction Verification Checklist below)
+2. Sign each transaction with your wallet
+3. Broadcast to the network
+4. Wait for confirmation
 
 ### Type 2: Info Response
 
@@ -504,7 +560,7 @@ Returned when you ask for information, not a trade.
 }
 ```
 
-**Sign and broadcast transactions IN ORDER.** Wait for each to confirm before sending the next.
+**Verify, then sign and broadcast transactions IN ORDER.** Wait for each to confirm before sending the next.
 
 ## Async Mode
 
@@ -543,6 +599,131 @@ Returns the same response format as sync mode once complete. This endpoint is fr
 
 ---
 
+## ⚠️ Transaction Verification Checklist
+
+**Every transaction Tator returns should be inspected before signing.** This is your last line of defense — a transaction can only move your funds if you sign it.
+
+### Quick Checks (Do Every Time)
+
+**1. Verify the `to` address**
+- For swaps: Should be a known DEX router (Uniswap, SushiSwap, 1inch, etc.)
+- For bridges: Should be a known bridge contract (Relay, LiFi, deBridge, etc.)
+- For sends: Should be the recipient address YOU specified in your prompt
+- For token launches: Should be the Clanker or Pump.fun deployment contract
+- **Red flag:** Unknown `to` address that doesn't match the expected protocol
+
+**2. Verify the `value` field**
+- This is the amount of native token (ETH/SOL/etc.) being sent WITH the transaction
+- For token swaps using ERC-20s, this should usually be `"0"` (tokens move via calldata, not `value`)
+- For buying with native ETH, this should match the amount you requested
+- **Red flag:** Unexpectedly large `value` that doesn't match your prompt
+
+**3. Check for approval transactions**
+- Approvals (function selector `0x095ea7b3`) grant a contract permission to spend your tokens
+- The spender address should be a known DEX router or protocol contract
+- The amount should be reasonable — unlimited approvals (`type(uint256).max`) are common but carry more risk than exact amounts
+- **Red flag:** Approval to an unknown address, or approval for a token you didn't mention
+
+**4. Verify the `chainId`**
+- Should match the chain you requested in your prompt
+- **Red flag:** Transaction targeting a different chain than expected
+
+**5. Check the `description` field**
+- Tator includes a human-readable description of each transaction
+- It should align with what you asked for
+- **Red flag:** Description doesn't match your original prompt
+
+### Deep Checks (For Large Trades or High-Value Operations)
+
+**6. Decode the calldata**
+- Use [openchain.xyz/signatures](https://openchain.xyz/signatures) or [4byte.directory](https://www.4byte.directory/) to decode the function selector (first 4 bytes of `data`)
+- Common expected selectors:
+  - `0x095ea7b3` — `approve(address,uint256)`
+  - `0x38ed1739` — `swapExactTokensForTokens` (Uniswap V2)
+  - `0x5ae401dc` — `multicall` (Uniswap V3)
+  - `0x3593564c` — `execute` (Uniswap Universal Router)
+- **Red flag:** Unrecognized function selector on a high-value transaction
+
+**7. Verify contract addresses on a block explorer**
+- Look up the `to` address on [BaseScan](https://basescan.org), [Etherscan](https://etherscan.io), [Arbiscan](https://arbiscan.io), etc.
+- Check: Is it verified? Is it a known protocol? Does it have significant transaction history?
+- **Red flag:** Unverified contract, no transaction history, or recently deployed with no audit
+
+**8. Simulate the transaction**
+- Use [Tenderly](https://tenderly.co), [Blocknative](https://blocknative.com), or your wallet's built-in simulation to preview effects before signing
+- Shows exactly which tokens move where and what approvals are set
+- **Red flag:** Simulation shows unexpected token transfers or approvals
+
+### Automated Verification (For Agents)
+
+If you're building an agent that signs programmatically, implement verification checks before signing:
+
+```javascript
+function verifyTatorTransaction(tx, originalPrompt, expectedChainId) {
+  const warnings = [];
+
+  // Check 1: Chain matches what was requested
+  if (tx.chainId !== expectedChainId) {
+    warnings.push(`CHAIN MISMATCH: Expected ${expectedChainId}, got ${tx.chainId}`);
+  }
+
+  // Check 2: Value is reasonable (set your own threshold)
+  const MAX_VALUE_WEI = BigInt('1000000000000000000'); // 1 ETH
+  if (BigInt(tx.value || '0') > MAX_VALUE_WEI) {
+    warnings.push(`HIGH VALUE: ${tx.value} wei exceeds safety threshold`);
+  }
+
+  // Check 3: Known contract allowlist
+  const KNOWN_ROUTERS = new Set([
+    '0x3fc91a3afd70395cd496c647d5a6cc9d4b2b7fad', // Uniswap Universal Router (Base)
+    '0x2626664c2603336e57b271c5c0b26f421741e481', // Uniswap V3 Router (Base)
+    '0x6131b5fae19ea4f9d964eac0408e4408b66337b5', // Kyberswap (Base)
+    // Add other known contracts for your use case
+  ]);
+
+  const toAddress = tx.to.toLowerCase();
+  if (!KNOWN_ROUTERS.has(toAddress)) {
+    warnings.push(`UNKNOWN CONTRACT: ${tx.to} — verify on block explorer before signing`);
+  }
+
+  // Check 4: If it's an approval, verify the spender
+  if (tx.data?.startsWith('0x095ea7b3')) {
+    const spender = '0x' + tx.data.slice(34, 74);
+    if (!KNOWN_ROUTERS.has(spender.toLowerCase())) {
+      warnings.push(`APPROVAL TO UNKNOWN SPENDER: ${spender} — verify before signing`);
+    }
+  }
+
+  // Check 5: Description sanity check
+  if (tx.description && !tx.description.toLowerCase().includes(
+    originalPrompt.split(' ')[0].toLowerCase() // Very basic — improve for production
+  )) {
+    warnings.push(`DESCRIPTION MISMATCH: "${tx.description}" may not match your intent`);
+  }
+
+  return {
+    safe: warnings.length === 0,
+    warnings
+  };
+}
+
+// Usage
+const result = await tatorResponse.json();
+if (result.type === 'transaction') {
+  for (const tx of result.transactions) {
+    const check = verifyTatorTransaction(tx, originalPrompt, 8453);
+    if (!check.safe) {
+      console.warn('⚠️ Transaction verification warnings:', check.warnings);
+      // Decide: skip, require human approval, or proceed with caution
+    }
+  }
+}
+```
+
+> **For automated agents:** Never enable fully automatic signing without implementing verification checks. A human-in-the-loop confirmation for high-value transactions is strongly recommended.
+
+---
+
 ## Wallet Integration Patterns
 
 ### Pattern 1: Using `@x402/fetch` (Simplest — Recommended)
@@ -573,9 +754,13 @@ const response = await x402Fetch('https://x402.quickintel.io/v1/tator/prompt', {
 
 const result = await response.json();
 
-// 2. Handle response
+// 2. Verify and handle response
 if (result.type === 'transaction') {
   for (const tx of result.transactions) {
+    // ALWAYS verify before signing — see Transaction Verification Checklist
+    console.log(`Reviewing TX: ${tx.description}`);
+    console.log(`  To: ${tx.to} | Value: ${tx.value} | Chain: ${tx.chainId}`);
+
     const signedTx = await signer.sendTransaction({
       to: tx.to,
       data: tx.data,
@@ -719,7 +904,7 @@ if (paymentResponse) {
 
 const result = await paidRes.json();
 
-// ── Step 7: Sign and broadcast the trade transactions ──
+// ── Step 7: Verify and sign the trade transactions ──
 
 if (result.type === 'transaction') {
   const walletClient = createWalletClient({
@@ -729,6 +914,10 @@ if (result.type === 'transaction') {
   });
 
   for (const tx of result.transactions) {
+    // ALWAYS verify before signing — see Transaction Verification Checklist
+    console.log(`Reviewing TX: ${tx.description}`);
+    console.log(`  To: ${tx.to} | Value: ${tx.value} | Chain: ${tx.chainId}`);
+
     const txHash = await walletClient.sendTransaction({
       to: tx.to,
       data: tx.data,
@@ -867,10 +1056,14 @@ if (paymentResponse) {
 
 const result = await paidRes.json();
 
-// ── Step 7: Sign and broadcast the trade transactions ──
+// ── Step 7: Verify and sign the trade transactions ──
 
 if (result.type === 'transaction') {
   for (const tx of result.transactions) {
+    // ALWAYS verify before signing — see Transaction Verification Checklist
+    console.log(`Reviewing TX: ${tx.description}`);
+    console.log(`  To: ${tx.to} | Value: ${tx.value} | Chain: ${tx.chainId}`);
+
     const txResponse = await wallet.sendTransaction({
       to: tx.to,
       data: tx.data,
@@ -914,7 +1107,7 @@ const response = await paidFetch('https://x402.quickintel.io/v1/tator/prompt', {
 });
 
 const result = await response.json();
-// Handle result same as EVM patterns above
+// Verify transactions before signing — see Transaction Verification Checklist
 ```
 
 ### Pattern 5: AgentWallet (frames.ag)
@@ -940,9 +1133,10 @@ const tatorResponse = await fetch('https://frames.ag/api/wallets/{username}/acti
 
 const result = await tatorResponse.json();
 
-// Step 2: Sign and broadcast via AgentWallet
+// Step 2: Verify and broadcast via AgentWallet
 if (result.type === 'transaction') {
   for (const tx of result.transactions) {
+    // Verify before signing — see Transaction Verification Checklist
     const broadcastResponse = await fetch(
       'https://frames.ag/api/wallets/{username}/actions/send-transaction',
       {
@@ -990,9 +1184,10 @@ const tatorResponse = await fetch('https://x402.quickintel.io/v1/tator/prompt', 
 
 const result = await tatorResponse.json();
 
-// Step 2: Sign and broadcast via Vincent
+// Step 2: Verify and broadcast via Vincent
 if (result.type === 'transaction') {
   for (const tx of result.transactions) {
+    // Verify before signing — see Transaction Verification Checklist
     const receipt = await vincent.sendTransaction({
       chainId: tx.chainId,
       to: tx.to,
@@ -1024,7 +1219,7 @@ curl -sS -X POST "https://api.wallet.paysponge.com/api/x402/fetch" \
   }'
 ```
 
-Sponge detects the 402, signs the payment with the agent's managed wallet, retries, and returns the Tator response along with `payment_made` and `payment_details` metadata. **Note:** You still need to sign and broadcast the returned transactions through Sponge's transfer/swap endpoints or your own wallet. See the **sponge-wallet** skill for setup and registration.
+Sponge detects the 402, signs the payment with the agent's managed wallet, retries, and returns the Tator response along with `payment_made` and `payment_details` metadata. **Note:** You still need to verify and sign the returned transactions through Sponge's transfer/swap endpoints or your own wallet. See the **sponge-wallet** skill for setup and registration.
 
 ### Other Compatible Wallets
 
@@ -1092,9 +1287,12 @@ async function buyTokenSafely(tokenAddress, amountEth, chain) {
     throw new Error(result.message);
   }
 
-  // Step 3: Sign and broadcast
+  // Step 3: Verify and sign
   if (result.type === 'transaction') {
     for (const tx of result.transactions) {
+      // Verify before signing — see Transaction Verification Checklist
+      console.log(`Reviewing TX: ${tx.description} | To: ${tx.to} | Value: ${tx.value}`);
+
       const signedTx = await signer.sendTransaction({
         to: tx.to,
         data: tx.data,
@@ -1134,6 +1332,10 @@ await buyTokenSafely(
 
 ## Important Notes
 
+- **NEVER share private keys or seed phrases.** Tator only needs your public wallet address (`walletAddress` field). If anything asks for your private key, stop immediately.
+- **Always inspect returned transactions before signing.** See the Transaction Verification Checklist above. This is your primary security control.
+- **Use a hardware wallet for high-value trades.** Hardware wallets provide physical confirmation that cannot be bypassed by software.
+- **Start with small test amounts.** Verify the full flow works correctly with a trivial amount before scaling up.
 - **Payment charged regardless of outcome.** If Tator can't understand your prompt or the trade fails, you still pay $0.20. Use `payment-identifier` to safely retry without being charged again.
 - **You sign, you broadcast.** Tator never has custody. The transaction won't execute until YOU sign and broadcast.
 - **Multi-TX requires sequential execution.** Approvals must confirm before swaps.
@@ -1144,10 +1346,13 @@ await buyTokenSafely(
 - **Solana payment:** Pay with USDC on Solana using the SVM payment flow. The 402 response includes the `extra.feePayer` address needed to build the transaction.
 - **Job polling is free.** Once you've paid for the prompt in async mode, polling `/v1/tator/jobs/:jobId` costs nothing.
 - **Always scan before buying unknown tokens.** Use the **quickintel-scan** skill ($0.03) to check for honeypots, scams, and rug pull risks before executing trades. The liquidity field may not detect non-standard pairs — verify independently via DEX aggregators.
+- **Tator's endpoint (`x402.quickintel.io`) is operated by Quick Intel LLC**, a registered Colorado-based company providing crypto security APIs to platforms including DexTools and DexScreener. The same infrastructure serves over 50 million token scans. For more information: [quickintel.io](https://quickintel.io)
 
 ## Cross-Reference
 
 For security scanning before trading, see the **quickintel-scan** skill which costs $0.03 per scan. Always scan unknown tokens before buying.
+
+For token launch strategy, evaluation, and tax guidance, see the **token-launcher** skill.
 
 ## Resources
 
@@ -1155,4 +1360,5 @@ For security scanning before trading, see the **quickintel-scan** skill which co
 - **x402 Protocol:** https://www.x402.org
 - **x402 EVM Spec:** https://github.com/coinbase/x402/blob/main/specs/schemes/exact/scheme_exact_evm.md
 - **Gateway Discovery:** https://x402.quickintel.io/accepted
+- **Quick Intel:** https://quickintel.io
 - **Support:** https://t.me/tatortrader
