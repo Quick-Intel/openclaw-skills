@@ -62,7 +62,7 @@ description: "Scan any token for security risks, honeypots, and scams using Quic
 
 ### Who Operates This
 
-Quick Intel's endpoint (`x402.quickintel.io`) is operated by **Quick Intel LLC**, a registered Colorado-based cryptocurrency security company. The same scanning infrastructure:
+Quick Intel's endpoint (`x402.quickintel.io`) is operated by **Quick Intel LLC**, a registered US based cryptocurrency security company. The same scanning infrastructure:
 
 - Processes **over 50 million token scans** across 40+ blockchain networks
 - Provides security scanning APIs to **DexTools**, **DexScreener**, and **Tator Trader**
