@@ -983,7 +983,7 @@ console.log(result);
 - **Multi-chain payment:** You can pay on any supported chain — 9 EVM chains (Base, Ethereum, Arbitrum, Optimism, Polygon, Avalanche, Unichain, Linea, MegaETH) plus Solana. The 402 response lists all accepted networks.
 - **Solana payment:** Pay with USDC on Solana using the SVM payment flow. The 402 response includes the `extra.feePayer` address needed to build the transaction.
 - **Liquidity data is best-effort.** The scanner checks major DEX pairs but may miss tokens paired against non-standard assets. Always verify liquidity independently before executing trades, especially for new or niche tokens.
-- **Quick Intel's endpoint (`x402.quickintel.io`) is operated by Quick Intel LLC**, a registered Colorado-based company providing crypto security APIs to platforms including DexTools and DexScreener. For more information: [quickintel.io](https://quickintel.io)
+- **Quick Intel's endpoint (`x402.quickintel.io`) is operated by Quick Intel LLC**, a registered US based company providing crypto security APIs to platforms including DexTools and DexScreener. For more information: [quickintel.io](https://quickintel.io)
 
 ## Cross-Reference
 
