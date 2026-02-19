@@ -13,6 +13,76 @@ description: "Scan any token for security risks, honeypots, and scams using Quic
 
 **63 chains supported.** Not just EVM — Solana, Sui, Radix, Tron, and Injective are supported too. If you're checking a token, Quick Intel probably supports that chain.
 
+---
+
+## Security Model
+
+**Quick Intel is a read-only scanning service.** Understanding the trust boundaries:
+
+### What Quick Intel CAN do
+- Analyze token contracts for security risks, honeypots, and scam patterns
+- Return detailed audit data (ownership, permissions, tax rates, liquidity status)
+- Charge $0.03 USDC via x402 for the scan computation
+
+### What Quick Intel CANNOT do
+- Access your private keys (they never leave your wallet)
+- Execute any transactions on your behalf
+- Move, approve, or interact with your tokens in any way
+- Modify any contracts or on-chain state
+
+### What YOU must do
+- **NEVER paste private keys, seed phrases, or wallet credentials into any prompt or API call.** Quick Intel only needs the token's contract address and chain — it does not need YOUR wallet address.
+- **Treat scan results as one data point, not a guarantee.** A clean scan does not mean a token is safe forever — ownership can change, code can be upgraded via proxies, and liquidity can be pulled after your scan.
+- **Cross-reference with other sources.** For high-value decisions, verify scan results against block explorer data, DEX aggregator liquidity checks, and community sentiment.
+
+### Trust Boundary
+
+```
+┌─────────────────────────────────────────────────────┐
+│  YOUR SIDE (you control)                            │
+│                                                     │
+│  • Private keys (never shared)                      │
+│  • Payment authorization (EIP-3009 for $0.03 USDC)  │
+│  • Decision to trade based on scan results           │
+│                                                     │
+├─────────────────────────────────────────────────────┤
+│  QUICK INTEL'S SIDE (external service)              │
+│                                                     │
+│  • Receives: token address + chain name              │
+│  • Analyzes: contract bytecode, on-chain state       │
+│  • Returns: read-only security audit data            │
+│  • Charges: $0.03 USDC via x402 payment              │
+│                                                     │
+│  Quick Intel NEVER receives your private key.        │
+│  Quick Intel NEVER interacts with your tokens.       │
+│  Quick Intel is READ-ONLY — no transactions,         │
+│  no approvals, no state changes.                     │
+└─────────────────────────────────────────────────────┘
+```
+
+### Who Operates This
+
+Quick Intel's endpoint (`x402.quickintel.io`) is operated by **Quick Intel LLC**, a registered Colorado-based cryptocurrency security company. The same scanning infrastructure:
+
+- Processes **over 50 million token scans** across 40+ blockchain networks
+- Provides security scanning APIs to **DexTools**, **DexScreener**, and **Tator Trader**
+- Has been operational since April 2023
+- More information: [quickintel.io](https://quickintel.io)
+
+### Verifying Scan Results
+
+Scan results are based on automated contract analysis. For additional confidence, especially before large trades:
+
+1. **Check the contract on a block explorer** — Look up the token on [BaseScan](https://basescan.org), [Etherscan](https://etherscan.io), [Solscan](https://solscan.io), etc. Verify that the contract is verified and the source code matches expectations.
+2. **Confirm liquidity independently** — If `liquidity: false`, check a DEX aggregator (1inch, Jupiter, Odos) directly. The scanner may miss non-standard pairs.
+3. **Review holder distribution** — A token where one wallet holds 90%+ of supply is risky regardless of what the contract code shows.
+4. **Check token age and activity** — Recently deployed contracts with no transaction history carry higher risk.
+5. **Re-scan periodically** — Contract ownership, fee structures, and blacklists can change. A scan is a snapshot, not a permanent verdict.
+
+> **Bottom line:** Quick Intel provides data to inform your decisions. It reads contracts — it never touches your wallet or tokens. The $0.03 payment is the only transaction involved.
+
+---
+
 ## Overview
 
 | Detail | Value |
@@ -904,17 +974,22 @@ console.log(result);
 
 ## Important Notes
 
+- **NEVER share private keys or seed phrases.** Quick Intel only needs the token's contract address and chain name. It does not need your wallet address for scanning.
+- **Scan results are read-only data.** No transactions are returned, no approvals are requested, no on-chain state is modified. The only transaction is the $0.03 USDC payment.
 - **Payment is charged regardless of outcome.** Even if the scan returns limited data (unverified contract, new token), you still pay $0.03. Use `payment-identifier` to safely retry without being charged twice.
-- **Scan results are point-in-time.** A safe token today could be rugged tomorrow if not renounced.
+- **Scan results are point-in-time.** A safe token today could be rugged tomorrow if not renounced. Re-scan periodically for tokens you hold.
 - **Not financial advice.** Quick Intel provides data, not recommendations.
 - **Solana tokens** use different analysis than EVM — some fields may be null.
 - **Multi-chain payment:** You can pay on any supported chain — 9 EVM chains (Base, Ethereum, Arbitrum, Optimism, Polygon, Avalanche, Unichain, Linea, MegaETH) plus Solana. The 402 response lists all accepted networks.
 - **Solana payment:** Pay with USDC on Solana using the SVM payment flow. The 402 response includes the `extra.feePayer` address needed to build the transaction.
 - **Liquidity data is best-effort.** The scanner checks major DEX pairs but may miss tokens paired against non-standard assets. Always verify liquidity independently before executing trades, especially for new or niche tokens.
+- **Quick Intel's endpoint (`x402.quickintel.io`) is operated by Quick Intel LLC**, a registered Colorado-based company providing crypto security APIs to platforms including DexTools and DexScreener. For more information: [quickintel.io](https://quickintel.io)
 
 ## Cross-Reference
 
 For trading tokens after scanning, see the **tator-trade** skill which provides AI-powered trading with unsigned transactions.
+
+For token launch strategy, evaluation, and tax guidance, see the **token-launcher** skill.
 
 ## Resources
 
@@ -922,4 +997,5 @@ For trading tokens after scanning, see the **tator-trade** skill which provides 
 - **x402 Protocol:** https://www.x402.org
 - **x402 EVM Spec:** https://github.com/coinbase/x402/blob/main/specs/schemes/exact/scheme_exact_evm.md
 - **Gateway Discovery:** https://x402.quickintel.io/accepted
+- **Quick Intel:** https://quickintel.io
 - **Support:** https://t.me/quickintel
